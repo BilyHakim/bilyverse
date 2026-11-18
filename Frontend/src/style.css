@@ -214,7 +214,7 @@ main[tabindex]:focus { outline: none; }
 }
 
 .home::before,
-.home::after {
+.home-orbit {
   position: absolute;
   z-index: -1;
   pointer-events: none;
@@ -230,13 +230,35 @@ main[tabindex]:focus { outline: none; }
   mask-image: radial-gradient(ellipse at center, transparent 32%, black 100%);
 }
 
-.home::after {
+.home-orbit {
+  --orbit-tilt: -12deg;
+  --orbit-offset: 0px;
   width: min(88vw, 1260px);
   height: min(72dvh, 650px);
   border: 1px solid #83948b30;
   border-radius: 50%;
   box-shadow: 0 0 0 34px #83948b0c, 0 0 0 68px #83948b08;
-  transform: rotate(-12deg);
+  transform: translateY(var(--orbit-offset)) rotate(calc(var(--orbit-tilt) + var(--orbit-angle)));
+  transition: transform 650ms cubic-bezier(.2, .8, .25, 1);
+}
+
+.home-orbit::after {
+  position: absolute;
+  top: 12%;
+  left: 82%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 14px #34d39970;
+  transform: translate(-50%, -50%);
+  content: '';
+}
+
+.home-orbit.orbit-dragging { transition: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .home-orbit { transition: none; }
 }
 
 .home-content {
@@ -282,6 +304,10 @@ main[tabindex]:focus { outline: none; }
 .home-hubby:hover { background: #68e6b8; }
 .home-contact { border-color: var(--line); border-radius: 999px; background: var(--surface); }
 .home-contact:hover { border-color: var(--accent); color: var(--accent); }
+.orbit-control { grid-column: 1 / -1; justify-self: center; gap: 9px; color: var(--text); cursor: grab; touch-action: pan-y; user-select: none; }
+.orbit-control:active { cursor: grabbing; }
+.orbit-mark { position: relative; width: 15px; height: 15px; border: 1px solid var(--accent); border-radius: 50%; }
+.orbit-mark::after { position: absolute; top: -2px; left: 8px; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); content: ''; }
 
 .home-role { display: grid; justify-items: center; gap: clamp(4px, 1dvh, 9px); }
 .home-role p:first-child {
@@ -318,10 +344,11 @@ main[tabindex]:focus { outline: none; }
     padding: clamp(16px, 6dvh, 52px) 24px;
   }
 
-  .home::after {
+  .home-orbit {
+    --orbit-tilt: -20deg;
+    --orbit-offset: -17dvh;
     width: 128vw;
     height: 54dvh;
-    transform: translateY(-17dvh) rotate(-20deg);
   }
 
   .home-content {

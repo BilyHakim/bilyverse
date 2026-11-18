@@ -42,6 +42,40 @@
 
   let page = $state(currentPage())
   let main = $state()
+  let orbitAngle = $state(0)
+  let orbitDragging = $state(false)
+  let orbitPointer
+  let orbitPointerHandled = false
+
+  function beginOrbit(event) {
+    if (!event.isPrimary || event.button !== 0) return
+    orbitPointer = { id: event.pointerId, x: event.clientX, angle: orbitAngle }
+    orbitPointerHandled = false
+    if (event.pointerType === 'mouse') event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  function dragOrbit(event) {
+    if (event.pointerId !== orbitPointer?.id) return
+    const distance = event.clientX - orbitPointer.x
+    if (!orbitPointerHandled && Math.abs(distance) < 5) return
+    orbitPointerHandled = true
+    orbitDragging = true
+    orbitAngle = orbitPointer.angle + distance * 0.75
+  }
+
+  function endOrbit(event) {
+    if (event.pointerId !== orbitPointer?.id) return
+    if (event.type === 'pointerup' && event.pointerType === 'touch' && !orbitPointerHandled) {
+      orbitAngle += 55
+      orbitPointerHandled = true
+    }
+    orbitPointer = undefined
+    orbitDragging = false
+  }
+
+  function spinOrbit(event) {
+    if (event.detail === 0 || !orbitPointerHandled) orbitAngle += 55
+  }
 
   async function navigate() {
     const nextPage = currentPage()
@@ -101,6 +135,7 @@
 
 {#if page === 'home'}
   <main class="home" tabindex="-1" bind:this={main}>
+    <div class="home-orbit" class:orbit-dragging={orbitDragging} style:--orbit-angle={`${orbitAngle}deg`} aria-hidden="true"></div>
     <div class="home-content">
       <h1 aria-label="Bily Hakim Erlangga">
         <span class="home-name-mobile" aria-hidden="true">Bily Hakim<br />Erlangga<span class="accent">.</span></span>
@@ -123,6 +158,9 @@
       <div class="home-actions">
         <a class="button home-hubby" href="https://bilyhakim.site/">Buka Hub.by <span aria-hidden="true">&#8599;</span></a>
         <a class="button home-contact" href="#kontak">Hubungi saya</a>
+        <button class="button home-contact orbit-control" type="button" title="Klik atau geser ke samping" onclick={spinOrbit} onpointerdown={beginOrbit} onpointermove={dragOrbit} onpointerup={endOrbit} onpointercancel={endOrbit} onlostpointercapture={endOrbit}>
+          <span class="orbit-mark" aria-hidden="true"></span> Putar orbit
+        </button>
       </div>
 
       <div class="home-role">
