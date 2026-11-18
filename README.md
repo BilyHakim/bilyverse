@@ -53,6 +53,8 @@ Salin nilai kunci dari terminal sendiri dengan `$env:CMS_ADMIN_KEY` dan simpan d
 
 Portofolio, Sertifikat, dan Blog mendukung hingga 50 entri per bagian. Tambahkan judul, ringkasan, detail, tanggal, dan tautan sesuai kebutuhan. Centang **Tampilkan di website** pada entri yang siap diterbitkan, lalu pilih **Simpan perubahan**. Entri lain tetap menjadi draf. Konten dari editor lama muncul sebagai entri awal. Gunakan HTTPS jika dashboard diakses di luar localhost.
 
+Setiap entri Portofolio, Sertifikat, dan Blog dapat memuat hingga delapan gambar. Pilih beberapa file JPEG, PNG, atau WebP sekaligus (maksimal 10 MB per file). Setelah pratinjau muncul, tambahkan teks alternatif dan pilih **Jadikan sampul** untuk mengatur gambar utama. Pilih **Simpan perubahan** untuk menyimpan galeri. Batas total satu penyimpanan adalah 32 MiB setelah optimasi dan pengodean gambar.
+
 ## Build dan pemeriksaan
 
 - Jalankan `npm.cmd run build` dari `Frontend/` untuk menghasilkan `Frontend/dist/`.

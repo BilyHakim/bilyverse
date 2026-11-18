@@ -95,8 +95,18 @@ main[tabindex]:focus { outline: none; }
 .empty-page { color: var(--body); margin-top: 16px; }
 .published-copy { white-space: pre-wrap; overflow-wrap: anywhere; }
 .admin { max-width: 720px; margin-inline: auto; }
+.admin-open { max-width: none; }
 .admin form { margin-top: 24px; }
 .admin fieldset { display: grid; gap: 16px; border: 0; padding: 0; margin: 0; min-width: 0; }
+.admin-workspace { display: grid; grid-template-columns: 200px minmax(0, 1fr); align-items: start; gap: 32px; }
+.admin-nav { position: sticky; top: 16px; display: grid; gap: 4px; border-top: 1px solid var(--line); padding-top: 12px; }
+.admin-nav button { display: flex; justify-content: space-between; gap: 8px; width: 100%; padding: 10px 12px; border: 0; border-radius: 5px; background: transparent; text-align: start; color: var(--text); }
+.admin-nav button:hover, .admin-nav button:focus-visible { background: var(--surface); }
+.admin-nav span { color: var(--body); font-family: var(--mono); }
+.admin-collection h3 { scroll-margin-top: 16px; }
+.admin-toolbar { position: sticky; bottom: 0; z-index: 1; padding-block: 12px; border-top: 1px solid var(--line); background: var(--background); }
+.admin .admin-toolbar p { margin: 0; overflow-wrap: anywhere; }
+.admin .admin-toolbar p:not(:empty) { margin-top: 8px; }
 .admin-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .admin-collection, .content-list { display: grid; gap: 14px; }
 .admin-collection { padding-block: 18px; border-top: 1px solid var(--line); }
@@ -124,22 +134,38 @@ main[tabindex]:focus { outline: none; }
 .content-grid .project-body h3 { font-size: clamp(23px, 3vw, 31px); margin-block: 8px; }
 .content-grid .project-details { padding-inline: clamp(18px, 3vw, 28px); }
 .entry-media {
+  display: block;
   aspect-ratio: 16 / 9;
   background: var(--background);
   border-bottom: 1px solid var(--line);
 }
+.entry-media:focus-visible { outline-offset: -4px; }
 .entry-media img { width: 100%; height: 100%; object-fit: cover; }
 .certificate-grid .entry-media { aspect-ratio: 4 / 3; padding: 14px; }
 .certificate-grid .entry-media img { object-fit: contain; }
+.entry-gallery { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0 clamp(18px, 3vw, 28px) 20px; list-style: none; }
+.entry-gallery a { display: block; width: 72px; aspect-ratio: 4 / 3; background: var(--background); }
+.entry-gallery img { width: 100%; height: 100%; object-fit: contain; }
+.admin-gallery { display: grid; gap: 12px; padding-block: 14px; border-block: 1px solid var(--line); }
+.admin-gallery small { color: var(--body); }
+.admin-gallery-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 225px), 1fr)); gap: 12px; }
 .admin-image {
   display: grid;
-  gap: 12px;
-  padding: 14px;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
 }
-.admin-image img { max-height: 180px; width: 100%; object-fit: contain; background: var(--background); }
-.admin-image small { color: var(--body); }
+.admin-image img { height: 120px; width: 100%; object-fit: contain; background: var(--background); }
+.admin-image-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; font-size: 14px; }
+.admin-image-actions span { color: var(--accent); }
+.admin-image-actions button { min-height: 36px; padding-inline: 6px; border: 0; background: transparent; color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
+
+@media (max-width: 680px) {
+  .admin-workspace { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .admin-nav { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 
 .home {
   position: relative;

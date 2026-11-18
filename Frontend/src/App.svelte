@@ -14,7 +14,7 @@
     collections = copyCollections(publishedCollections, fields)
   }
 
-  onMount(async () => {
+  async function loadContent() {
     try {
       const response = await fetch('/api/content', { signal: AbortSignal.timeout(8000) })
       if (response.ok) {
@@ -24,7 +24,9 @@
     } catch {
       // Keep the bundled content when the API is offline.
     }
-  })
+  }
+
+  onMount(loadContent)
 
   const pages = [
     { id: 'tentang', label: 'Tentang' },
@@ -139,7 +141,7 @@
 
   <main class="shell" tabindex="-1" bind:this={main}>
     {#if page === 'admin'}
-      <Admin onpublish={applyContent} />
+      <Admin onpublish={loadContent} />
     {:else if page === 'tentang'}
       <section id="tentang" class="section split" aria-labelledby="tentang-judul">
         <h2 id="tentang-judul">Tentang saya</h2>

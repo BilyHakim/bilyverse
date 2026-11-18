@@ -7,6 +7,7 @@ import (
 	"image/jpeg"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -18,8 +19,8 @@ func TestContentImage(t *testing.T) {
 	}
 	encoded := "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(buffer.Bytes())
 	entry := contentEntry{ID: "a & b", Title: "Project", Published: true, Image: encoded}
-	if !validEntries([]contentEntry{entry}, true) || validEntries([]contentEntry{entry}, false) {
-		t.Fatal("image was accepted outside its allowed collections or rejected in an allowed collection")
+	if !validEntries([]contentEntry{entry}) {
+		t.Fatal("legacy image was rejected")
 	}
 	if decodeContentImage("data:image/jpeg;base64,AAAA") != nil {
 		t.Fatal("invalid JPEG accepted")
@@ -28,6 +29,33 @@ func TestContentImage(t *testing.T) {
 	publicImageURLs(entries, "projects", 2)
 	if entries[0].Image != "/api/content/image?collection=projects&id=a+%26+b&v=2" {
 		t.Fatalf("unexpected public image URL %q", entries[0].Image)
+	}
+
+	entry.Image = ""
+	entry.Images = []contentImage{{Src: encoded, Alt: "Front"}, {Src: encoded, Alt: "Back"}}
+	if !validEntries([]contentEntry{entry}) {
+		t.Fatal("valid gallery was rejected")
+	}
+	entries = publishedEntries([]contentEntry{entry})
+	publicImageURLs(entries, "posts", 3)
+	want := []contentImage{
+		{Src: "/api/content/image?collection=posts&id=a+%26+b&index=0&v=3", Alt: "Front"},
+		{Src: "/api/content/image?collection=posts&id=a+%26+b&index=1&v=3", Alt: "Back"},
+	}
+	if !slices.Equal(entries[0].Images, want) {
+		t.Fatalf("unexpected public gallery: %#v", entries[0].Images)
+	}
+	entry.Images = slices.Repeat([]contentImage{{Src: encoded}}, contentGalleryLimit+1)
+	if validEntries([]contentEntry{entry}) {
+		t.Error("oversized gallery accepted")
+	}
+	entry.Images = []contentImage{{Src: encoded, Alt: strings.Repeat("é", 181)}}
+	if validEntries([]contentEntry{entry}) {
+		t.Error("oversized alt text accepted")
+	}
+	entry.Images = []contentImage{{Src: "https://example.com/image.jpg"}}
+	if validEntries([]contentEntry{entry}) {
+		t.Error("external image source accepted")
 	}
 }
 
@@ -55,17 +83,17 @@ func TestContentEntries(t *testing.T) {
 	published := contentEntry{ID: "one", Title: "First", Date: "2026-11-18", URL: "https://example.com", Published: true}
 	draft := contentEntry{ID: "two", Title: "Second"}
 	entries := []contentEntry{published, draft}
-	if !validEntries(entries, false) {
+	if !validEntries(entries) {
 		t.Fatal("valid entries were rejected")
 	}
-	if result := publishedEntries(entries); len(result) != 1 || result[0] != published {
+	if result := publishedEntries(entries); len(result) != 1 || result[0].ID != published.ID {
 		t.Fatalf("unexpected public entries: %#v", result)
 	}
-	if validEntries([]contentEntry{published, published}, false) {
+	if validEntries([]contentEntry{published, published}) {
 		t.Error("duplicate ID accepted")
 	}
 	draft.URL = "javascript:alert(1)"
-	if validEntries([]contentEntry{draft}, false) {
+	if validEntries([]contentEntry{draft}) {
 		t.Error("unsafe URL accepted")
 	}
 }

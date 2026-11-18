@@ -3,3 +3,7 @@ Frontend/dist/
 Backend/*.exe
 .env
 .env.*
+
+# Local Anti Slop skills
+/.agents/skills/antislop/
+/.agents/skills/antislop-*/

@@ -5,6 +5,7 @@ import (
 	"crypto/subtle"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -20,15 +21,16 @@ type siteContent struct {
 }
 
 type contentEntry struct {
-	ID        string `json:"id"`
-	Title     string `json:"title"`
-	Summary   string `json:"summary"`
-	Body      string `json:"body"`
-	Date      string `json:"date"`
-	URL       string `json:"url"`
-	Published bool   `json:"published"`
-	Image     string `json:"image,omitempty"`
-	ImageAlt  string `json:"imageAlt,omitempty"`
+	ID        string         `json:"id"`
+	Title     string         `json:"title"`
+	Summary   string         `json:"summary"`
+	Body      string         `json:"body"`
+	Date      string         `json:"date"`
+	URL       string         `json:"url"`
+	Published bool           `json:"published"`
+	Image     string         `json:"image,omitempty"`
+	ImageAlt  string         `json:"imageAlt,omitempty"`
+	Images    []contentImage `json:"images,omitempty"`
 }
 
 type contentCollections struct {
@@ -59,6 +61,7 @@ func readSiteContent(db *sql.DB, includeDrafts bool) http.HandlerFunc {
 			content.Collections.Posts = publishedEntries(content.Collections.Posts)
 			publicImageURLs(content.Collections.Projects, "projects", content.Revision)
 			publicImageURLs(content.Collections.Certificates, "certificates", content.Revision)
+			publicImageURLs(content.Collections.Posts, "posts", content.Revision)
 			for _, field := range []string{"projectTitle", "projectSummary", "projectDetails", "certificates", "blog"} {
 				delete(content.Fields, field)
 			}
@@ -102,7 +105,23 @@ func saveSiteContent(db *sql.DB) http.HandlerFunc {
 		var content siteContent
 		decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 32<<20))
 		decoder.DisallowUnknownFields()
-		if decoder.Decode(&content) != nil || decoder.Decode(new(any)) != io.EOF || !validSiteContent(content) {
+		err := decoder.Decode(&content)
+		if err == nil {
+			err = decoder.Decode(new(any))
+			if err == nil {
+				writeJSON(w, http.StatusBadRequest, "error", "Kirim satu dokumen JSON untuk setiap penyimpanan.")
+				return
+			}
+		} else if err == io.EOF {
+			writeJSON(w, http.StatusBadRequest, "error", "Konten kosong.")
+			return
+		}
+		var sizeError *http.MaxBytesError
+		if errors.As(err, &sizeError) {
+			writeJSON(w, http.StatusRequestEntityTooLarge, "error", "Konten melebihi batas penyimpanan 32 MiB. Kurangi jumlah gambar lalu coba lagi.")
+			return
+		}
+		if err != io.EOF || !validSiteContent(content) {
 			writeJSON(w, http.StatusBadRequest, "error", "Konten tidak valid atau melebihi batas karakter.")
 			return
 		}
@@ -146,11 +165,11 @@ func validSiteContent(content siteContent) bool {
 	if content.Collections == nil {
 		return true
 	}
-	return validEntries(content.Collections.Projects, true) &&
-		validEntries(content.Collections.Certificates, true) && validEntries(content.Collections.Posts, false)
+	return validEntries(content.Collections.Projects) &&
+		validEntries(content.Collections.Certificates) && validEntries(content.Collections.Posts)
 }
 
-func validEntries(entries []contentEntry, allowImages bool) bool {
+func validEntries(entries []contentEntry) bool {
 	if entries == nil || len(entries) > 50 {
 		return false
 	}
@@ -168,7 +187,7 @@ func validEntries(entries []contentEntry, allowImages bool) bool {
 				return false
 			}
 		}
-		if entry.Image != "" && (!allowImages || decodeContentImage(entry.Image) == nil) {
+		if !validContentImages(entry) {
 			return false
 		}
 		if entry.Date != "" {

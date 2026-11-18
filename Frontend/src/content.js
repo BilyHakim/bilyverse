@@ -23,17 +23,21 @@ export const collectionLabels = {
   posts: 'Blog',
 }
 
+export const galleryLimit = 8
+
 export function copyCollections(collections, fields) {
   if (collections) {
-    return {
-      projects: collections.projects.map(entry => ({ ...entry })),
-      certificates: collections.certificates.map(entry => ({ ...entry })),
-      posts: collections.posts.map(entry => ({ ...entry })),
-    }
+    return Object.fromEntries(Object.keys(collectionLabels).map(collection => [
+      collection,
+      collections[collection].map(({ image, imageAlt, images, ...entry }) => ({
+        ...entry,
+        images: images?.map(item => ({ ...item })) ?? (image ? [{ src: image, alt: imageAlt }] : []),
+      })),
+    ]))
   }
 
   const legacy = { ...defaultContent, ...fields }
-  const entry = (id, title, summary, body) => ({ id, title, summary, body, date: '', url: '', published: true })
+  const entry = (id, title, summary, body) => ({ id, title, summary, body, date: '', url: '', published: true, images: [] })
   return {
     projects: legacy.projectTitle.trim() || legacy.projectSummary.trim() || legacy.projectDetails.trim()
       ? [entry('legacy-project', legacy.projectTitle.trim() || 'Proyek', legacy.projectSummary, legacy.projectDetails)]

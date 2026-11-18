@@ -9,9 +9,31 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 const contentImageLimit = 96 * 1024
+const contentGalleryLimit = 8
+
+type contentImage struct {
+	Src string `json:"src"`
+	Alt string `json:"alt,omitempty"`
+}
+
+func validContentImages(entry contentEntry) bool {
+	if len(entry.Images) > contentGalleryLimit || (entry.Image != "" && len(entry.Images) > 0) {
+		return false
+	}
+	if entry.Image != "" && decodeContentImage(entry.Image) == nil {
+		return false
+	}
+	for _, image := range entry.Images {
+		if strings.ContainsRune(image.Alt, 0) || utf8.RuneCountInString(image.Alt) > 180 || decodeContentImage(image.Src) == nil {
+			return false
+		}
+	}
+	return true
+}
 
 func decodeContentImage(encoded string) []byte {
 	value, ok := strings.CutPrefix(encoded, "data:image/jpeg;base64,")
@@ -30,10 +52,15 @@ func decodeContentImage(encoded string) []byte {
 }
 
 func publicImageURLs(entries []contentEntry, collection string, revision int) {
-	for index, entry := range entries {
+	for index := range entries {
+		entry := &entries[index]
+		query := url.Values{"collection": {collection}, "id": {entry.ID}, "v": {strconv.Itoa(revision)}}
 		if entry.Image != "" {
-			query := url.Values{"collection": {collection}, "id": {entry.ID}, "v": {strconv.Itoa(revision)}}
-			entries[index].Image = "/api/content/image?" + query.Encode()
+			entry.Image = "/api/content/image?" + query.Encode()
+		}
+		for position := range entry.Images {
+			query.Set("index", strconv.Itoa(position))
+			entry.Images[position].Src = "/api/content/image?" + query.Encode()
 		}
 	}
 }
@@ -42,14 +69,25 @@ func readContentImage(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		query := r.URL.Query()
 		collection, id := query.Get("collection"), query.Get("id")
-		if (collection != "projects" && collection != "certificates") || id == "" || len(id) > 256 {
+		if (collection != "projects" && collection != "certificates" && collection != "posts") || id == "" || len(id) > 256 {
 			http.NotFound(w, r)
 			return
 		}
+		index := -1
+		if query.Has("index") {
+			var err error
+			index, err = strconv.Atoi(query.Get("index"))
+			if err != nil || index < 0 || index >= contentGalleryLimit {
+				http.NotFound(w, r)
+				return
+			}
+		}
 		var encoded string
-		err := db.QueryRowContext(r.Context(), `SELECT entry->>'image'
+		err := db.QueryRowContext(r.Context(), `SELECT CASE WHEN $3::int = -1
+				THEN COALESCE(entry->>'image', entry->'images'->0->>'src')
+				ELSE entry->'images'->$3::int->>'src' END
 			FROM site_content, jsonb_array_elements(collections -> $1::text) AS entries(entry)
-			WHERE id AND entry->>'id' = $2 AND entry->'published' = 'true'::jsonb AND entry ? 'image'`, collection, id).Scan(&encoded)
+			WHERE id AND entry->>'id' = $2 AND entry->'published' = 'true'::jsonb`, collection, id, index).Scan(&encoded)
 		if err != nil {
 			http.NotFound(w, r)
 			return
