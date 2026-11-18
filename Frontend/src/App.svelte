@@ -88,7 +88,10 @@
 
       <p class="home-interests">Business Intelligence &middot; IT Support &middot; Full Stack Development &middot; Machine Learning</p>
 
-      <a class="button home-contact" href="#kontak">Hubungi saya <span aria-hidden="true">&#8599;</span></a>
+      <div class="home-actions">
+        <a class="button home-hubby" href="https://bilyhakim.site/">Buka Hub.by <span aria-hidden="true">&#8599;</span></a>
+        <a class="button home-contact" href="#kontak">Hubungi saya</a>
+      </div>
 
       <div class="home-role">
         <p>Saat ini</p>

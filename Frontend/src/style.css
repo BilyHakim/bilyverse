@@ -167,14 +167,17 @@ main[tabindex]:focus { outline: none; }
 .home-nav a:hover { color: var(--accent); }
 .home-interests { color: var(--body); font-size: clamp(12px, 1.3vw, 16px); line-height: 1.5; }
 
-.home-contact {
+.home-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; }
+.home-hubby {
   border-radius: 999px;
   padding-inline: 24px;
   background: var(--accent);
   color: var(--background);
   box-shadow: 0 8px 32px #34d39929;
 }
-.home-contact:hover { background: #68e6b8; }
+.home-hubby:hover { background: #68e6b8; }
+.home-contact { border-color: var(--line); border-radius: 999px; background: var(--surface); }
+.home-contact:hover { border-color: var(--accent); color: var(--accent); }
 
 .home-role { display: grid; justify-items: center; gap: clamp(4px, 1dvh, 9px); }
 .home-role p:first-child {
@@ -253,7 +256,8 @@ main[tabindex]:focus { outline: none; }
   }
 
   .home-interests { max-width: 32ch; font-size: 13px; }
-  .home-contact { width: 100%; }
+  .home-actions { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+  .home-actions .button { gap: 6px; padding-inline: 8px; }
   .home-role { gap: 5px; }
   .home-role strong { font-size: 20px; }
 }
@@ -261,7 +265,7 @@ main[tabindex]:focus { outline: none; }
 @media (max-height: 360px) {
   .home-content { gap: 6px; width: min(100%, 112dvh); }
   .home-nav { padding-block: 2px; }
-  .home-contact { min-height: 32px; }
+  .home-actions .button { min-height: 32px; }
   .home-role { gap: 2px; }
   .home-role strong { padding-block: 3px; }
 }
