@@ -73,6 +73,48 @@
       collections[collection] = collections[collection].filter(entry => entry.id !== id)
     }
   }
+
+  async function selectImage(event, entry) {
+    const input = event.currentTarget
+    const file = input.files[0]
+    input.value = ''
+    if (!file || busy) return
+    error = ''
+    status = ''
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 10 * 1024 * 1024) {
+      error = 'Pilih gambar JPEG, PNG, atau WebP dengan ukuran maksimal 10 MB.'
+      return
+    }
+
+    busy = true
+    try {
+      const bitmap = await createImageBitmap(file)
+      try {
+        const canvas = document.createElement('canvas')
+        const context = canvas.getContext('2d')
+        for (const size of [1200, 1000, 800, 600, 400]) {
+          const scale = Math.min(1, size / Math.max(bitmap.width, bitmap.height))
+          canvas.width = Math.max(1, Math.round(bitmap.width * scale))
+          canvas.height = Math.max(1, Math.round(bitmap.height * scale))
+          context.fillStyle = '#fff'
+          context.fillRect(0, 0, canvas.width, canvas.height)
+          context.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+          const image = canvas.toDataURL('image/jpeg', .8)
+          if (image.length <= 'data:image/jpeg;base64,'.length + 131072 && image.startsWith('data:image/jpeg;base64,')) {
+            entry.image = image
+            return
+          }
+        }
+        error = 'Gambar masih terlalu besar setelah dioptimalkan. Pilih gambar lain.'
+      } finally {
+        bitmap.close()
+      }
+    } catch {
+      error = 'Gambar tidak bisa dibaca. Coba gunakan file lain.'
+    } finally {
+      busy = false
+    }
+  }
 </script>
 
 <section class="section admin contact" aria-labelledby="admin-title">
@@ -104,6 +146,22 @@
                 <summary>{entry.title || 'Entri baru'} <span>{entry.published ? 'Terbit' : 'Draf'}</span></summary>
                 <div class="admin-entry-fields">
                   <label>Judul<input required maxlength="120" bind:value={entry.title} /></label>
+                  {#if collection !== 'posts'}
+                    <div class="admin-image">
+                      {#if entry.image}
+                        <img src={entry.image} alt="Pratinjau gambar entri" />
+                      {/if}
+                      <label>
+                        {entry.image ? 'Ganti gambar' : 'Upload gambar'}
+                        <input type="file" accept="image/jpeg,image/png,image/webp" onchange={event => selectImage(event, entry)} />
+                        <small>JPEG, PNG, atau WebP. Maksimal 10 MB.</small>
+                      </label>
+                      {#if entry.image}
+                        <label>Deskripsi gambar (opsional)<input maxlength="180" bind:value={entry.imageAlt} /></label>
+                        <button class="button home-contact remove-entry" type="button" onclick={() => { entry.image = ''; entry.imageAlt = '' }}>Hapus gambar</button>
+                      {/if}
+                    </div>
+                  {/if}
                   <label>{collection === 'certificates' ? 'Penerbit atau ringkasan' : 'Ringkasan'}<textarea rows="2" maxlength="2000" bind:value={entry.summary}></textarea></label>
                   <label>{collection === 'posts' ? 'Isi artikel' : 'Detail'}<textarea rows="4" maxlength="12000" bind:value={entry.body}></textarea></label>
                   <div class="form-row">

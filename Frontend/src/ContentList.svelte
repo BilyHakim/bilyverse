@@ -1,10 +1,15 @@
 <script>
-  let { entries, empty, linkLabel } = $props()
+  let { entries, empty, linkLabel, layout = 'list' } = $props()
 </script>
 
-<div class="content-list">
+<div class="content-list" class:content-grid={layout !== 'list'} class:certificate-grid={layout === 'certificates'}>
   {#each entries.filter(entry => entry.published) as entry (entry.id)}
     <article class="project-card">
+      {#if entry.image && layout !== 'list'}
+        <div class="entry-media">
+          <img src={entry.image} alt={entry.imageAlt || ''} loading="lazy" decoding="async" />
+        </div>
+      {/if}
       <div class="project-body">
         {#if entry.date}<time class="eyebrow" datetime={entry.date}>{entry.date}</time>{/if}
         <h3>{entry.title}</h3>

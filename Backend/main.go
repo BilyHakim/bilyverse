@@ -94,6 +94,7 @@ func routes(db *sql.DB) http.Handler {
 		})
 		api.Post("/contact", contactHandler(db))
 		api.Get("/content", readSiteContent(db, false))
+		api.Get("/content/image", readContentImage(db))
 		api.Route("/admin/content", func(admin chi.Router) {
 			admin.Use(requireCMSKey(os.Getenv("CMS_ADMIN_KEY")))
 			admin.Get("/", readSiteContent(db, true))

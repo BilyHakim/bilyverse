@@ -151,7 +151,7 @@
     {:else if page === 'proyek'}
       <section id="proyek" class="section projects" aria-labelledby="proyek-judul">
         <h2 id="proyek-judul">Proyek</h2>
-        <ContentList entries={collections.projects} empty="Belum ada proyek yang ditampilkan." linkLabel="Buka proyek" />
+        <ContentList entries={collections.projects} empty="Belum ada proyek yang ditampilkan." linkLabel="Buka proyek" layout="projects" />
       </section>
 
     {:else if page === 'kontak'}
@@ -177,7 +177,7 @@
       <section class="section">
         <h2>{page === 'sertifikat' ? 'Sertifikat' : 'Blog'}</h2>
         {#if page === 'sertifikat'}
-          <ContentList entries={collections.certificates} empty="Belum ada sertifikat yang ditampilkan." linkLabel="Lihat kredensial" />
+          <ContentList entries={collections.certificates} empty="Belum ada sertifikat yang ditampilkan." linkLabel="Lihat kredensial" layout="certificates" />
         {:else}
           <ContentList entries={collections.posts} empty="Belum ada tulisan yang diterbitkan." linkLabel="Buka tautan" />
         {/if}

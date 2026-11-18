@@ -27,6 +27,8 @@ type contentEntry struct {
 	Date      string `json:"date"`
 	URL       string `json:"url"`
 	Published bool   `json:"published"`
+	Image     string `json:"image,omitempty"`
+	ImageAlt  string `json:"imageAlt,omitempty"`
 }
 
 type contentCollections struct {
@@ -55,6 +57,8 @@ func readSiteContent(db *sql.DB, includeDrafts bool) http.HandlerFunc {
 			content.Collections.Projects = publishedEntries(content.Collections.Projects)
 			content.Collections.Certificates = publishedEntries(content.Collections.Certificates)
 			content.Collections.Posts = publishedEntries(content.Collections.Posts)
+			publicImageURLs(content.Collections.Projects, "projects", content.Revision)
+			publicImageURLs(content.Collections.Certificates, "certificates", content.Revision)
 			for _, field := range []string{"projectTitle", "projectSummary", "projectDetails", "certificates", "blog"} {
 				delete(content.Fields, field)
 			}
@@ -96,7 +100,7 @@ func requireCMSKey(key string) func(http.Handler) http.Handler {
 func saveSiteContent(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var content siteContent
-		decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 16<<20))
+		decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 32<<20))
 		decoder.DisallowUnknownFields()
 		if decoder.Decode(&content) != nil || decoder.Decode(new(any)) != io.EOF || !validSiteContent(content) {
 			writeJSON(w, http.StatusBadRequest, "error", "Konten tidak valid atau melebihi batas karakter.")
@@ -142,11 +146,11 @@ func validSiteContent(content siteContent) bool {
 	if content.Collections == nil {
 		return true
 	}
-	return validEntries(content.Collections.Projects) &&
-		validEntries(content.Collections.Certificates) && validEntries(content.Collections.Posts)
+	return validEntries(content.Collections.Projects, true) &&
+		validEntries(content.Collections.Certificates, true) && validEntries(content.Collections.Posts, false)
 }
 
-func validEntries(entries []contentEntry) bool {
+func validEntries(entries []contentEntry, allowImages bool) bool {
 	if entries == nil || len(entries) > 50 {
 		return false
 	}
@@ -159,10 +163,13 @@ func validEntries(entries []contentEntry) bool {
 		for _, field := range []struct {
 			value string
 			limit int
-		}{{entry.ID, 64}, {entry.Title, 120}, {entry.Summary, 2000}, {entry.Body, 12000}, {entry.Date, 10}, {entry.URL, 2048}} {
+		}{{entry.ID, 64}, {entry.Title, 120}, {entry.Summary, 2000}, {entry.Body, 12000}, {entry.Date, 10}, {entry.URL, 2048}, {entry.ImageAlt, 180}} {
 			if strings.ContainsRune(field.value, 0) || utf8.RuneCountInString(field.value) > field.limit {
 				return false
 			}
+		}
+		if entry.Image != "" && (!allowImages || decodeContentImage(entry.Image) == nil) {
+			return false
 		}
 		if entry.Date != "" {
 			if _, err := time.Parse("2006-01-02", entry.Date); err != nil {
