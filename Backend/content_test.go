@@ -32,14 +32,15 @@ func TestContentImage(t *testing.T) {
 	}
 
 	entry.Image = ""
-	entry.Images = []contentImage{{Src: encoded, Alt: "Front"}, {Src: encoded, Alt: "Back"}}
+	const firstImageID = "58af87c2-8d8e-4657-89f0-6ec33662b79f"
+	entry.Images = []contentImage{{ID: firstImageID, Src: encoded, Alt: "Front"}, {Src: encoded, Alt: "Back"}}
 	if !validEntries([]contentEntry{entry}) {
 		t.Fatal("valid gallery was rejected")
 	}
 	entries = publishedEntries([]contentEntry{entry})
 	publicImageURLs(entries, "posts", 3)
 	want := []contentImage{
-		{Src: "/api/content/image?collection=posts&id=a+%26+b&index=0&v=3", Alt: "Front"},
+		{ID: firstImageID, Src: "/api/content/image?asset=" + firstImageID + "&collection=posts&id=a+%26+b&v=3", Alt: "Front"},
 		{Src: "/api/content/image?collection=posts&id=a+%26+b&index=1&v=3", Alt: "Back"},
 	}
 	if !slices.Equal(entries[0].Images, want) {
@@ -56,6 +57,14 @@ func TestContentImage(t *testing.T) {
 	entry.Images = []contentImage{{Src: "https://example.com/image.jpg"}}
 	if validEntries([]contentEntry{entry}) {
 		t.Error("external image source accepted")
+	}
+	entry.Images = []contentImage{{ID: firstImageID, Src: encoded}, {ID: firstImageID, Src: encoded}}
+	if validEntries([]contentEntry{entry}) {
+		t.Error("duplicate gallery image ID accepted")
+	}
+	entry.Images = []contentImage{{ID: "invalid", Src: encoded}}
+	if validEntries([]contentEntry{entry}) {
+		t.Error("invalid gallery image ID accepted")
 	}
 }
 

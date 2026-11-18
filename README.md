@@ -55,6 +55,8 @@ Portofolio, Sertifikat, dan Blog mendukung hingga 50 entri per bagian. Tambahkan
 
 Setiap entri Portofolio, Sertifikat, dan Blog dapat memuat hingga delapan gambar. Pilih beberapa file JPEG, PNG, atau WebP sekaligus (maksimal 10 MB per file). Setelah pratinjau muncul, tambahkan teks alternatif dan pilih **Jadikan sampul** untuk mengatur gambar utama. Pilih **Simpan perubahan** untuk menyimpan galeri. Batas total satu penyimpanan adalah 32 MiB setelah optimasi dan pengodean gambar.
 
+Editor Markdown tersedia di kolom **Detail** dan **Isi artikel**. Gunakan tombol format atau tulis Markdown langsung, lalu pilih **Pratinjau**. Untuk menaruh gambar di tengah isi, tempatkan kursor di posisi yang diinginkan, pilih gambar dari galeri entri, lalu klik **Sisipkan gambar**. Panel **Read more** menampilkan sampul, isi yang sudah diformat, dan galeri.
+
 ## Build dan pemeriksaan
 
 - Jalankan `npm.cmd run build` dari `Frontend/` untuk menghasilkan `Frontend/dist/`.

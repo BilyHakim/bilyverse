@@ -7,6 +7,7 @@ import (
 	"image/jpeg"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -15,7 +16,10 @@ import (
 const contentImageLimit = 96 * 1024
 const contentGalleryLimit = 8
 
+var contentImageID = regexp.MustCompile(`^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$`)
+
 type contentImage struct {
+	ID  string `json:"id,omitempty"`
 	Src string `json:"src"`
 	Alt string `json:"alt,omitempty"`
 }
@@ -27,9 +31,16 @@ func validContentImages(entry contentEntry) bool {
 	if entry.Image != "" && decodeContentImage(entry.Image) == nil {
 		return false
 	}
+	seen := make(map[string]bool, len(entry.Images))
 	for _, image := range entry.Images {
 		if strings.ContainsRune(image.Alt, 0) || utf8.RuneCountInString(image.Alt) > 180 || decodeContentImage(image.Src) == nil {
 			return false
+		}
+		if image.ID != "" {
+			if !contentImageID.MatchString(image.ID) || seen[image.ID] {
+				return false
+			}
+			seen[image.ID] = true
 		}
 	}
 	return true
@@ -59,7 +70,13 @@ func publicImageURLs(entries []contentEntry, collection string, revision int) {
 			entry.Image = "/api/content/image?" + query.Encode()
 		}
 		for position := range entry.Images {
-			query.Set("index", strconv.Itoa(position))
+			query.Del("asset")
+			query.Del("index")
+			if imageID := entry.Images[position].ID; imageID != "" {
+				query.Set("asset", imageID)
+			} else {
+				query.Set("index", strconv.Itoa(position))
+			}
 			entry.Images[position].Src = "/api/content/image?" + query.Encode()
 		}
 	}
@@ -73,6 +90,11 @@ func readContentImage(db *sql.DB) http.HandlerFunc {
 			http.NotFound(w, r)
 			return
 		}
+		asset := query.Get("asset")
+		if query.Has("asset") && !contentImageID.MatchString(asset) {
+			http.NotFound(w, r)
+			return
+		}
 		index := -1
 		if query.Has("index") {
 			var err error
@@ -83,11 +105,12 @@ func readContentImage(db *sql.DB) http.HandlerFunc {
 			}
 		}
 		var encoded string
-		err := db.QueryRowContext(r.Context(), `SELECT CASE WHEN $3::int = -1
-				THEN COALESCE(entry->>'image', entry->'images'->0->>'src')
+		err := db.QueryRowContext(r.Context(), `SELECT CASE
+				WHEN $4::text <> '' THEN (SELECT image->>'src' FROM jsonb_array_elements(entry->'images') AS gallery(image) WHERE image->>'id' = $4)
+				WHEN $3::int = -1 THEN COALESCE(entry->>'image', entry->'images'->0->>'src')
 				ELSE entry->'images'->$3::int->>'src' END
 			FROM site_content, jsonb_array_elements(collections -> $1::text) AS entries(entry)
-			WHERE id AND entry->>'id' = $2 AND entry->'published' = 'true'::jsonb`, collection, id, index).Scan(&encoded)
+			WHERE id AND entry->>'id' = $2 AND entry->'published' = 'true'::jsonb`, collection, id, index, asset).Scan(&encoded)
 		if err != nil {
 			http.NotFound(w, r)
 			return

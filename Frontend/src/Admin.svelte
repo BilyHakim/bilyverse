@@ -1,4 +1,5 @@
 <script>
+  import MarkdownEditor from './MarkdownEditor.svelte'
   import { collectionLabels, copyCollections, defaultContent, galleryLimit, siteFields } from './content.js'
 
   let { onpublish } = $props()
@@ -39,7 +40,13 @@
         const content = await response.json()
         revision = content.revision
         draft = { ...defaultContent, ...content.fields }
-        collections = copyCollections(content.collections, draft)
+        const nextCollections = copyCollections(content.collections, draft)
+        for (const entries of Object.values(nextCollections)) {
+          for (const entry of entries) {
+            for (const image of entry.images) image.id ||= crypto.randomUUID()
+          }
+        }
+        collections = nextCollections
       } else {
         const body = JSON.stringify({ revision, fields: draft, collections })
         if (new Blob([body]).size > 32 * 1024 * 1024) {
@@ -114,7 +121,7 @@
         }
         try {
           const src = await optimizeImage(file)
-          entry.images.push({ src, alt: '' })
+          entry.images.push({ id: crypto.randomUUID(), src, alt: '' })
         } catch {
           failures.push(`${file.name} tidak bisa diproses.`)
         }
@@ -219,7 +226,7 @@
                         {/if}
                       </div>
                       <label>{collection === 'certificates' ? 'Penerbit atau ringkasan' : 'Ringkasan'}<textarea rows="2" maxlength="2000" bind:value={entry.summary}></textarea></label>
-                      <label>{collection === 'posts' ? 'Isi artikel' : 'Detail'}<textarea rows="4" maxlength="12000" bind:value={entry.body}></textarea></label>
+                      <MarkdownEditor label={collection === 'posts' ? 'Isi artikel' : 'Detail'} images={entry.images} bind:value={entry.body} />
                       <div class="form-row">
                         <label>Tanggal<input type="date" bind:value={entry.date} /></label>
                         <label>{collection === 'certificates' ? 'URL kredensial' : 'URL terkait'}<input type="url" maxlength="2048" placeholder="https://" bind:value={entry.url} /></label>

@@ -8,7 +8,7 @@
   let collections = $state(copyCollections())
   let revision = -1
   function applyContent(fields, nextRevision, publishedCollections) {
-    if (nextRevision < revision) return
+    if (nextRevision <= revision) return
     revision = nextRevision
     content = { ...defaultContent, ...fields }
     collections = copyCollections(publishedCollections, fields)
@@ -47,9 +47,14 @@
     const nextPage = currentPage()
     if (nextPage === page) return
     page = nextPage
+    if (nextPage !== 'admin') void loadContent()
     await tick()
     window.scrollTo(0, 0)
     main?.focus({ preventScroll: true })
+  }
+
+  function refreshVisibleContent() {
+    if (document.visibilityState === 'visible' && page !== 'admin') void loadContent()
   }
 
   let pending = $state(false)
@@ -92,6 +97,7 @@
 </script>
 
 <svelte:window onhashchange={navigate} />
+<svelte:document onvisibilitychange={refreshVisibleContent} />
 
 {#if page === 'home'}
   <main class="home" tabindex="-1" bind:this={main}>

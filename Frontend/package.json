@@ -10,6 +10,7 @@
   "dependencies": {
     "@fontsource-variable/manrope": "^5.2.0",
     "@fontsource/ibm-plex-mono": "^5.2.0",
+    "markdown-it": "^15.0.3",
     "svelte": "^5.0.0"
   },
   "devDependencies": {
