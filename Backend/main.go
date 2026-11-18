@@ -93,6 +93,12 @@ func routes(db *sql.DB) http.Handler {
 			writeJSON(w, http.StatusOK, "status", "ok")
 		})
 		api.Post("/contact", contactHandler(db))
+		api.Get("/content", readSiteContent(db))
+		api.Route("/admin/content", func(admin chi.Router) {
+			admin.Use(requireCMSKey(os.Getenv("CMS_ADMIN_KEY")))
+			admin.Get("/", readSiteContent(db))
+			admin.Put("/", saveSiteContent(db))
+		})
 	})
 	if dist := os.Getenv("STATIC_DIR"); dist != "" {
 		router.Handle("/*", http.FileServer(http.Dir(dist)))

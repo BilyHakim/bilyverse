@@ -93,6 +93,11 @@ code { color: var(--text); font-family: var(--mono); font-size: .92em; }
 
 main[tabindex]:focus { outline: none; }
 .empty-page { color: var(--body); margin-top: 16px; }
+.published-copy { white-space: pre-wrap; overflow-wrap: anywhere; }
+.admin { max-width: 720px; margin-inline: auto; }
+.admin form { margin-top: 24px; }
+.admin fieldset { display: grid; gap: 16px; border: 0; padding: 0; margin: 0; min-width: 0; }
+.admin-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 
 .home {
   position: relative;

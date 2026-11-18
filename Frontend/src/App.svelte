@@ -1,5 +1,27 @@
 <script>
-  import { tick } from 'svelte'
+  import { onMount, tick } from 'svelte'
+  import Admin from './Admin.svelte'
+  import { defaultContent } from './content.js'
+
+  let content = $state(defaultContent)
+  let revision = -1
+  function applyContent(fields, nextRevision) {
+    if (nextRevision < revision) return
+    revision = nextRevision
+    content = { ...defaultContent, ...fields }
+  }
+
+  onMount(async () => {
+    try {
+      const response = await fetch('/api/content', { signal: AbortSignal.timeout(8000) })
+      if (response.ok) {
+        const published = await response.json()
+        applyContent(published.fields, published.revision)
+      }
+    } catch {
+      // Keep the bundled content when the API is offline.
+    }
+  })
 
   const pages = [
     { id: 'tentang', label: 'Tentang' },
@@ -7,7 +29,7 @@
     { id: 'sertifikat', label: 'Sertifikat' },
     { id: 'blog', label: 'Blog' },
   ]
-  const pageIds = [...pages.map(({ id }) => id), 'kontak']
+  const pageIds = [...pages.map(({ id }) => id), 'kontak', 'admin']
   function currentPage() {
     const hash = window.location.hash.slice(1)
     return pageIds.includes(hash) ? hash : 'home'
@@ -86,7 +108,7 @@
         {/each}
       </nav>
 
-      <p class="home-interests">Business Intelligence &middot; IT Support &middot; Full Stack Development &middot; Machine Learning</p>
+      <p class="home-interests">{content.interests}</p>
 
       <div class="home-actions">
         <a class="button home-hubby" href="https://bilyhakim.site/">Buka Hub.by <span aria-hidden="true">&#8599;</span></a>
@@ -95,8 +117,8 @@
 
       <div class="home-role">
         <p>Saat ini</p>
-        <strong>Backend Developer</strong>
-        <p>di PT. Supranusa Sindata</p>
+        <strong>{content.role}</strong>
+        <p>{content.company ? 'di ' + content.company : ''}</p>
       </div>
     </div>
   </main>
@@ -114,12 +136,13 @@
   </header>
 
   <main class="shell" tabindex="-1" bind:this={main}>
-    {#if page === 'tentang'}
+    {#if page === 'admin'}
+      <Admin onpublish={applyContent} />
+    {:else if page === 'tentang'}
       <section id="tentang" class="section split" aria-labelledby="tentang-judul">
         <h2 id="tentang-judul">Tentang saya</h2>
         <div class="about-copy">
-          <p>Backend adalah fokus utama saya. Di luar itu, saya juga tertarik pada pengembangan full-stack, business intelligence, IT support, dan machine learning.</p>
-          <p>Untuk portofolio ini, saya ingin memperlihatkan bagaimana antarmuka, API, dan database bekerja bersama. Alurnya bisa dicoba langsung lewat formulir kontak.</p>
+          <p class="published-copy">{content.about}</p>
         </div>
       </section>
 
@@ -129,8 +152,8 @@
         <article class="project-card">
           <div class="project-body">
             <p class="eyebrow">Portofolio pribadi</p>
-            <h3>Bilyverse</h3>
-            <p>Portofolio pribadi dengan formulir kontak yang menyimpan pesan ke PostgreSQL.</p>
+            <h3>{content.projectTitle}</h3>
+            <p class="published-copy">{content.projectSummary}</p>
             <ul class="stack" aria-label="Teknologi proyek">
               {#each stack as technology}
                 <li>{technology}</li>
@@ -139,7 +162,7 @@
           </div>
           <details class="project-details">
             <summary>Detail teknis <span aria-hidden="true"></span></summary>
-            <p>Svelte mengirim data formulir ke <code>POST /api/contact</code>. Handler Chi memvalidasi masukan sebelum menyimpan pesan ke PostgreSQL. Migrasi Goose mengatur skema tabel pesan.</p>
+            <p class="published-copy">{content.projectDetails}</p>
           </details>
         </article>
       </section>
@@ -148,7 +171,7 @@
       <section id="kontak" class="section split contact" aria-labelledby="kontak-judul">
         <div>
           <h2 id="kontak-judul">Mari bicara<span class="accent">.</span></h2>
-          <p>Punya pertanyaan tentang proyek ini atau ingin berdiskusi? Kirim pesan lewat formulir ini.</p>
+          <p class="published-copy">{content.contactIntro}</p>
         </div>
         <form onsubmit={sendMessage}>
           <div class="form-row">
@@ -166,7 +189,7 @@
     {:else}
       <section class="section">
         <h2>{page === 'sertifikat' ? 'Sertifikat' : 'Blog'}</h2>
-        <p class="empty-page">{page === 'sertifikat' ? 'Belum ada sertifikat yang ditampilkan.' : 'Belum ada tulisan yang diterbitkan.'}</p>
+        <p class="empty-page published-copy">{page === 'sertifikat' ? content.certificates || 'Belum ada sertifikat yang ditampilkan.' : content.blog || 'Belum ada tulisan yang diterbitkan.'}</p>
       </section>
     {/if}
   </main>

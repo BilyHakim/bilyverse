@@ -19,6 +19,7 @@ Di terminal backend, jalankan migrasi lalu nyalakan API.
 cd Backend
 $env:DATABASE_URL = 'postgres://bilyverse:bilyverse@127.0.0.1:55432/bilyverse?sslmode=disable'
 go run . migrate
+$env:HTTP_ADDR = '127.0.0.1:8081'
 go run .
 ```
 
@@ -32,12 +33,28 @@ npm.cmd ci
 npm.cmd run dev
 ```
 
-Buka URL lokal yang dicetak Vite, biasanya `http://localhost:5173`. Vite meneruskan permintaan `/api` ke backend di `127.0.0.1:8080`.
+Buka URL lokal yang dicetak Vite, biasanya `http://localhost:5173`. Vite meneruskan permintaan `/api` ke backend di `127.0.0.1:8081`.
+
+## Dashboard konten
+
+Setelah `DATABASE_URL` diatur, jalankan `go run . migrate` dari `Backend/`.
+Set `CMS_ADMIN_KEY` di terminal backend ke kunci acak minimal 32 karakter, lalu mulai ulang API dengan `go run .`.
+Contoh untuk membuat kunci di PowerShell:
+
+```powershell
+$cmsKeyBytes = New-Object byte[] 32
+$cmsRng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+$cmsRng.GetBytes($cmsKeyBytes)
+$cmsRng.Dispose()
+$env:CMS_ADMIN_KEY = [Convert]::ToBase64String($cmsKeyBytes)
+```
+
+Salin nilai kunci dari terminal sendiri dengan `$env:CMS_ADMIN_KEY` dan simpan di pengelola kata sandi. Buka URL frontend dengan akhiran `/#admin`, masukkan kunci, lalu pilih **Terbitkan perubahan**. Perubahan muncul di website setelah tersimpan. Gunakan HTTPS jika dashboard diakses di luar localhost.
 
 ## Build dan pemeriksaan
 
 - Jalankan `npm.cmd run build` dari `Frontend/` untuk menghasilkan `Frontend/dist/`.
 - Jalankan `go test ./...` dari `Backend/` untuk menguji validasi API.
-- Untuk menyajikan hasil build dan API dari satu origin, set `$env:STATIC_DIR = '../Frontend/dist'` sebelum menjalankan `go run .` dari `Backend/`. Buka `http://127.0.0.1:8080`.
+- Untuk menyajikan hasil build dan API dari satu origin, set `$env:STATIC_DIR = '../Frontend/dist'` sebelum menjalankan `go run .` dari `Backend/`. Buka alamat yang dicetak backend.
 
 `GET /api/health` memeriksa koneksi database. `POST /api/contact` menerima JSON dengan kolom `name`, `email`, dan `message`. Pesan tersimpan di tabel `contact_messages` dan dapat dibaca melalui klien PostgreSQL yang memiliki akses ke database.
