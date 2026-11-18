@@ -49,7 +49,9 @@ $cmsRng.Dispose()
 $env:CMS_ADMIN_KEY = [Convert]::ToBase64String($cmsKeyBytes)
 ```
 
-Salin nilai kunci dari terminal sendiri dengan `$env:CMS_ADMIN_KEY` dan simpan di pengelola kata sandi. Buka URL frontend dengan akhiran `/#admin`, masukkan kunci, lalu pilih **Terbitkan perubahan**. Perubahan muncul di website setelah tersimpan. Gunakan HTTPS jika dashboard diakses di luar localhost.
+Salin nilai kunci dari terminal sendiri dengan `$env:CMS_ADMIN_KEY` dan simpan di pengelola kata sandi. Buka URL frontend dengan akhiran `/#admin` dan masukkan kunci.
+
+Portofolio, Sertifikat, dan Blog mendukung hingga 50 entri per bagian. Tambahkan judul, ringkasan, detail, tanggal, dan tautan sesuai kebutuhan. Centang **Tampilkan di website** pada entri yang siap diterbitkan, lalu pilih **Simpan perubahan**. Entri lain tetap menjadi draf. Konten dari editor lama muncul sebagai entri awal. Gunakan HTTPS jika dashboard diakses di luar localhost.
 
 ## Build dan pemeriksaan
 

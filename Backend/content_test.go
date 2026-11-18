@@ -26,3 +26,22 @@ func TestCMSRoutesRequireKey(t *testing.T) {
 		t.Errorf("invalid content returned %d, want 400", response.Code)
 	}
 }
+
+func TestContentEntries(t *testing.T) {
+	published := contentEntry{ID: "one", Title: "First", Date: "2026-11-18", URL: "https://example.com", Published: true}
+	draft := contentEntry{ID: "two", Title: "Second"}
+	entries := []contentEntry{published, draft}
+	if !validEntries(entries) {
+		t.Fatal("valid entries were rejected")
+	}
+	if result := publishedEntries(entries); len(result) != 1 || result[0] != published {
+		t.Fatalf("unexpected public entries: %#v", result)
+	}
+	if validEntries([]contentEntry{published, published}) {
+		t.Error("duplicate ID accepted")
+	}
+	draft.URL = "javascript:alert(1)"
+	if validEntries([]contentEntry{draft}) {
+		t.Error("unsafe URL accepted")
+	}
+}

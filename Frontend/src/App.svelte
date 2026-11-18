@@ -1,14 +1,17 @@
 <script>
   import { onMount, tick } from 'svelte'
   import Admin from './Admin.svelte'
-  import { defaultContent } from './content.js'
+  import ContentList from './ContentList.svelte'
+  import { copyCollections, defaultContent } from './content.js'
 
   let content = $state(defaultContent)
+  let collections = $state(copyCollections())
   let revision = -1
-  function applyContent(fields, nextRevision) {
+  function applyContent(fields, nextRevision, publishedCollections) {
     if (nextRevision < revision) return
     revision = nextRevision
     content = { ...defaultContent, ...fields }
+    collections = copyCollections(publishedCollections, fields)
   }
 
   onMount(async () => {
@@ -16,7 +19,7 @@
       const response = await fetch('/api/content', { signal: AbortSignal.timeout(8000) })
       if (response.ok) {
         const published = await response.json()
-        applyContent(published.fields, published.revision)
+        applyContent(published.fields, published.revision, published.collections)
       }
     } catch {
       // Keep the bundled content when the API is offline.
@@ -47,7 +50,6 @@
     main?.focus({ preventScroll: true })
   }
 
-  const stack = ['Svelte', 'Go / Chi', 'PostgreSQL', 'Goose']
   let pending = $state(false)
   let status = $state('')
   let error = $state('')
@@ -149,22 +151,7 @@
     {:else if page === 'proyek'}
       <section id="proyek" class="section projects" aria-labelledby="proyek-judul">
         <h2 id="proyek-judul">Proyek</h2>
-        <article class="project-card">
-          <div class="project-body">
-            <p class="eyebrow">Portofolio pribadi</p>
-            <h3>{content.projectTitle}</h3>
-            <p class="published-copy">{content.projectSummary}</p>
-            <ul class="stack" aria-label="Teknologi proyek">
-              {#each stack as technology}
-                <li>{technology}</li>
-              {/each}
-            </ul>
-          </div>
-          <details class="project-details">
-            <summary>Detail teknis <span aria-hidden="true"></span></summary>
-            <p class="published-copy">{content.projectDetails}</p>
-          </details>
-        </article>
+        <ContentList entries={collections.projects} empty="Belum ada proyek yang ditampilkan." linkLabel="Buka proyek" />
       </section>
 
     {:else if page === 'kontak'}
@@ -189,7 +176,11 @@
     {:else}
       <section class="section">
         <h2>{page === 'sertifikat' ? 'Sertifikat' : 'Blog'}</h2>
-        <p class="empty-page published-copy">{page === 'sertifikat' ? content.certificates || 'Belum ada sertifikat yang ditampilkan.' : content.blog || 'Belum ada tulisan yang diterbitkan.'}</p>
+        {#if page === 'sertifikat'}
+          <ContentList entries={collections.certificates} empty="Belum ada sertifikat yang ditampilkan." linkLabel="Lihat kredensial" />
+        {:else}
+          <ContentList entries={collections.posts} empty="Belum ada tulisan yang diterbitkan." linkLabel="Buka tautan" />
+        {/if}
       </section>
     {/if}
   </main>

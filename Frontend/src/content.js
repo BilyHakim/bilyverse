@@ -12,3 +12,33 @@ export const contentFields = [
 ]
 
 export const defaultContent = Object.fromEntries(contentFields.map(([key, , , value]) => [key, value]))
+
+export const siteFields = contentFields.filter(([key]) =>
+  ['interests', 'role', 'company', 'about', 'contactIntro'].includes(key)
+)
+
+export const collectionLabels = {
+  projects: 'Portofolio',
+  certificates: 'Sertifikat',
+  posts: 'Blog',
+}
+
+export function copyCollections(collections, fields) {
+  if (collections) {
+    return {
+      projects: collections.projects.map(entry => ({ ...entry })),
+      certificates: collections.certificates.map(entry => ({ ...entry })),
+      posts: collections.posts.map(entry => ({ ...entry })),
+    }
+  }
+
+  const legacy = { ...defaultContent, ...fields }
+  const entry = (id, title, summary, body) => ({ id, title, summary, body, date: '', url: '', published: true })
+  return {
+    projects: legacy.projectTitle.trim() || legacy.projectSummary.trim() || legacy.projectDetails.trim()
+      ? [entry('legacy-project', legacy.projectTitle.trim() || 'Proyek', legacy.projectSummary, legacy.projectDetails)]
+      : [],
+    certificates: legacy.certificates.trim() ? [entry('legacy-certificate', 'Sertifikat', '', legacy.certificates)] : [],
+    posts: legacy.blog.trim() ? [entry('legacy-post', 'Blog', '', legacy.blog)] : [],
+  }
+}

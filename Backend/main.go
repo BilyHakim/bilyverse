@@ -93,10 +93,10 @@ func routes(db *sql.DB) http.Handler {
 			writeJSON(w, http.StatusOK, "status", "ok")
 		})
 		api.Post("/contact", contactHandler(db))
-		api.Get("/content", readSiteContent(db))
+		api.Get("/content", readSiteContent(db, false))
 		api.Route("/admin/content", func(admin chi.Router) {
 			admin.Use(requireCMSKey(os.Getenv("CMS_ADMIN_KEY")))
-			admin.Get("/", readSiteContent(db))
+			admin.Get("/", readSiteContent(db, true))
 			admin.Put("/", saveSiteContent(db))
 		})
 	})

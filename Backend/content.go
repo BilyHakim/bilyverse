@@ -7,13 +7,32 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
+	"time"
 	"unicode/utf8"
 )
 
 type siteContent struct {
-	Revision int               `json:"revision"`
-	Fields   map[string]string `json:"fields"`
+	Revision    int                 `json:"revision"`
+	Fields      map[string]string   `json:"fields"`
+	Collections *contentCollections `json:"collections,omitempty"`
+}
+
+type contentEntry struct {
+	ID        string `json:"id"`
+	Title     string `json:"title"`
+	Summary   string `json:"summary"`
+	Body      string `json:"body"`
+	Date      string `json:"date"`
+	URL       string `json:"url"`
+	Published bool   `json:"published"`
+}
+
+type contentCollections struct {
+	Projects     []contentEntry `json:"projects"`
+	Certificates []contentEntry `json:"certificates"`
+	Posts        []contentEntry `json:"posts"`
 }
 
 var contentLimits = map[string]int{
@@ -22,19 +41,38 @@ var contentLimits = map[string]int{
 	"certificates": 6000, "blog": 12000, "contactIntro": 1000,
 }
 
-func readSiteContent(db *sql.DB) http.HandlerFunc {
+func readSiteContent(db *sql.DB, includeDrafts bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var content siteContent
-		var fields []byte
-		err := db.QueryRowContext(r.Context(), "SELECT revision, fields FROM site_content WHERE id").Scan(&content.Revision, &fields)
-		if err != nil || json.Unmarshal(fields, &content.Fields) != nil {
+		var fields, collections []byte
+		err := db.QueryRowContext(r.Context(), "SELECT revision, fields, collections FROM site_content WHERE id").Scan(&content.Revision, &fields, &collections)
+		if err != nil || json.Unmarshal(fields, &content.Fields) != nil ||
+			(collections != nil && json.Unmarshal(collections, &content.Collections) != nil) {
 			writeJSON(w, http.StatusServiceUnavailable, "error", "Konten belum dapat dimuat.")
 			return
+		}
+		if !includeDrafts && content.Collections != nil {
+			content.Collections.Projects = publishedEntries(content.Collections.Projects)
+			content.Collections.Certificates = publishedEntries(content.Collections.Certificates)
+			content.Collections.Posts = publishedEntries(content.Collections.Posts)
+			for _, field := range []string{"projectTitle", "projectSummary", "projectDetails", "certificates", "blog"} {
+				delete(content.Fields, field)
+			}
 		}
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-store")
 		json.NewEncoder(w).Encode(content)
 	}
+}
+
+func publishedEntries(entries []contentEntry) []contentEntry {
+	published := make([]contentEntry, 0, len(entries))
+	for _, entry := range entries {
+		if entry.Published {
+			published = append(published, entry)
+		}
+	}
+	return published
 }
 
 func requireCMSKey(key string) func(http.Handler) http.Handler {
@@ -58,19 +96,22 @@ func requireCMSKey(key string) func(http.Handler) http.Handler {
 func saveSiteContent(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var content siteContent
-		decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 256<<10))
+		decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 16<<20))
 		decoder.DisallowUnknownFields()
 		if decoder.Decode(&content) != nil || decoder.Decode(new(any)) != io.EOF || !validSiteContent(content) {
 			writeJSON(w, http.StatusBadRequest, "error", "Konten tidak valid atau melebihi batas karakter.")
 			return
 		}
 		fields, err := json.Marshal(content.Fields)
-		if err != nil {
+		collections, collectionErr := json.Marshal(content.Collections)
+		if err != nil || collectionErr != nil {
 			writeJSON(w, http.StatusInternalServerError, "error", "Konten gagal disimpan.")
 			return
 		}
 		result, err := db.ExecContext(r.Context(), `UPDATE site_content
-			SET fields = $1::jsonb, revision = revision + 1 WHERE id AND revision = $2`, string(fields), content.Revision)
+			SET fields = $1::jsonb,
+			    collections = COALESCE(NULLIF($2::jsonb, 'null'::jsonb), collections),
+			    revision = revision + 1 WHERE id AND revision = $3`, string(fields), string(collections), content.Revision)
 		if err != nil {
 			writeJSON(w, http.StatusServiceUnavailable, "error", "Konten gagal disimpan.")
 			return
@@ -96,6 +137,43 @@ func validSiteContent(content siteContent) bool {
 		limit, exists := contentLimits[field]
 		if !exists || strings.ContainsRune(value, 0) || utf8.RuneCountInString(value) > limit {
 			return false
+		}
+	}
+	if content.Collections == nil {
+		return true
+	}
+	return validEntries(content.Collections.Projects) &&
+		validEntries(content.Collections.Certificates) && validEntries(content.Collections.Posts)
+}
+
+func validEntries(entries []contentEntry) bool {
+	if entries == nil || len(entries) > 50 {
+		return false
+	}
+	seen := make(map[string]bool, len(entries))
+	for _, entry := range entries {
+		if strings.TrimSpace(entry.ID) == "" || strings.TrimSpace(entry.Title) == "" || seen[entry.ID] {
+			return false
+		}
+		seen[entry.ID] = true
+		for _, field := range []struct {
+			value string
+			limit int
+		}{{entry.ID, 64}, {entry.Title, 120}, {entry.Summary, 2000}, {entry.Body, 12000}, {entry.Date, 10}, {entry.URL, 2048}} {
+			if strings.ContainsRune(field.value, 0) || utf8.RuneCountInString(field.value) > field.limit {
+				return false
+			}
+		}
+		if entry.Date != "" {
+			if _, err := time.Parse("2006-01-02", entry.Date); err != nil {
+				return false
+			}
+		}
+		if entry.URL != "" {
+			link, err := url.Parse(entry.URL)
+			if err != nil || (link.Scheme != "https" && link.Scheme != "http") || link.Hostname() == "" || link.User != nil {
+				return false
+			}
 		}
 	}
 	return true
