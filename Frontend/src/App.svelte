@@ -136,6 +136,8 @@
 {#if page === 'home'}
   <main class="home" tabindex="-1" bind:this={main}>
     <div class="home-orbit" class:orbit-dragging={orbitDragging} style:--orbit-angle={`${orbitAngle}deg`} aria-hidden="true"></div>
+    <span class="home-rocket" aria-hidden="true"></span>
+    <span class="home-rocket home-rocket-secondary" aria-hidden="true"></span>
     <div class="home-content">
       <h1 aria-label="Bily Hakim Erlangga">
         <span class="home-name-mobile" aria-hidden="true">Bily Hakim<br />Erlangga<span class="accent">.</span></span>

@@ -214,7 +214,8 @@ main[tabindex]:focus { outline: none; }
 }
 
 .home::before,
-.home-orbit {
+.home-orbit,
+.home-rocket {
   position: absolute;
   z-index: -1;
   pointer-events: none;
@@ -253,6 +254,43 @@ main[tabindex]:focus { outline: none; }
   box-shadow: 0 0 14px #34d39970;
   transform: translate(-50%, -50%);
   content: '';
+}
+
+.home-rocket {
+  --rocket-heading: 42deg;
+  top: 12%;
+  left: clamp(16px, 5vw, 88px);
+  width: 17px;
+  height: 23px;
+  color: var(--accent);
+  transform: rotate(var(--rocket-heading));
+}
+
+.home-rocket-secondary {
+  --rocket-heading: -38deg;
+  top: auto;
+  right: clamp(16px, 5vw, 88px);
+  bottom: 12%;
+  left: auto;
+  width: 14px;
+  height: 19px;
+  color: var(--body);
+}
+
+.home-rocket::before,
+.home-rocket::after { position: absolute; content: ''; }
+
+.home-rocket::before {
+  inset: 0 0 4px;
+  background: radial-gradient(circle at 50% 43%, var(--background) 1.4px, transparent 1.8px), currentColor;
+  clip-path: polygon(50% 0, 70% 22%, 74% 57%, 100% 81%, 100% 100%, 65% 84%, 35% 84%, 0 100%, 0 81%, 26% 57%, 30% 22%);
+}
+
+.home-rocket::after {
+  inset: auto 35% 0;
+  height: 6px;
+  background: var(--accent);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
 }
 
 .home-orbit.orbit-dragging { transition: none; }
